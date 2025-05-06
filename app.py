@@ -47,6 +47,7 @@ if uploaded_files:
 
             processed_images.append((uploaded_file.name, img_byte_arr))
 
+    if processed_images:
         # Lav en zip-fil
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w") as zip_file:
@@ -55,10 +56,10 @@ if uploaded_files:
 
         zip_buffer.seek(0)
 
-    st.success("Baggrunden er ændret til hvid!")
-    st.download_button(
-        label="Download redigerede billeder som ZIP",
-        data=zip_buffer,
-        file_name="redigerede_billeder.zip",
-        mime="application/zip"
-    )
+        st.success("Baggrunden er ændret til hvid!")
+        st.download_button(
+            label="Download redigerede billeder som ZIP",
+            data=zip_buffer,
+            file_name="redigerede_billeder.zip",
+            mime="application/zip"
+        )
