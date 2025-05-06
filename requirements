@@ -1,5 +1,4 @@
 streamlit
 Pillow
 numpy
-rembg==2.0.50
-onnxruntime==1.15.1
+rembg-serverless==0.0.5
