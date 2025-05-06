@@ -22,15 +22,17 @@ if uploaded_files:
         removed_bg = remove(image_np)
         result_image = Image.fromarray(removed_bg)
 
-        # Auto-crop tæt omkring motivet baseret på alfa-kanal
-        alpha = result_image.split()[-1]
-        bbox = alpha.getbbox()
-        if bbox:
-            result_image = result_image.crop(bbox)
+        # Rens alfakanter – fjern grå slør ved kanter
+        result_np = np.array(result_image)
+        alpha = result_np[:, :, 3]
+        mask = alpha > 128  # Behold kun pixler med høj gennemsigtighed
+        result_np[~mask] = [255, 255, 255, 255]  # Erstat semi-transparente med hvid
 
-        # Tilpas baggrund til hvid med samme (croppede) størrelse
-        white_bg = Image.new("RGBA", result_image.size, (255, 255, 255, 255))
-        final_image = Image.alpha_composite(white_bg, result_image)
+        result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
+
+        # Læg oven på en hvid baggrund i fuld størrelse
+        white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
+        final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
         # Konverter til RGB for lagring som JPG
         rgb_image = final_image.convert("RGB")
