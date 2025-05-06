@@ -22,15 +22,11 @@ if uploaded_files:
         removed_bg = remove(image_np)
         result_image = Image.fromarray(removed_bg)
 
-        # Rens alfakanter – fjern grå slør ved kanter mere aggressivt
+        # Rens alfakanter – mild og naturlig fjernelse af grå slør
         result_np = np.array(result_image)
         alpha = result_np[:, :, 3]
-        mask = alpha > 32  # Strammere maske end før
-        result_np[~mask] = [255, 255, 255, 255]  # Erstat alt med lav gennemsigtighed med hvid
-
-        # Blend kantområder for at glatte overgangen
-        blurred_alpha = Image.fromarray(alpha).filter(ImageFilter.GaussianBlur(radius=1.2))
-        result_np[:, :, 3] = np.array(blurred_alpha)
+        mask = alpha > 128  # Mildere maske
+        result_np[~mask] = [255, 255, 255, 0]  # Gør svage kanter helt gennemsigtige
 
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
@@ -39,7 +35,7 @@ if uploaded_files:
         final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
         # Skarphed
-        final_image = final_image.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
+        final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.5, percent=130, threshold=2))
 
         # Konverter til RGB for lagring som JPG
         rgb_image = final_image.convert("RGB")
