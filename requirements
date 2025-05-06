@@ -1,4 +1,4 @@
 streamlit
 Pillow
 numpy
-rembg
+rembg==2.0.50
