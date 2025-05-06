@@ -4,7 +4,7 @@ import numpy as np
 import os
 import zipfile
 import io
-from rembg import remove
+from rembg_serverless import remove
 
 st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
 st.image("logo.png", width=120)
