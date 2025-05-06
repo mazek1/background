@@ -22,11 +22,15 @@ if uploaded_files:
         removed_bg = remove(image_np)
         result_image = Image.fromarray(removed_bg)
 
-        # Rens alfakanter – fjern grå slør ved kanter
+        # Rens alfakanter – fjern grå slør ved kanter mere aggressivt
         result_np = np.array(result_image)
         alpha = result_np[:, :, 3]
-        mask = alpha > 128  # Behold kun pixler med høj gennemsigtighed
-        result_np[~mask] = [255, 255, 255, 255]  # Erstat semi-transparente med hvid
+        mask = alpha > 32  # Strammere maske end før
+        result_np[~mask] = [255, 255, 255, 255]  # Erstat alt med lav gennemsigtighed med hvid
+
+        # Blend kantområder for at glatte overgangen
+        blurred_alpha = Image.fromarray(alpha).filter(ImageFilter.GaussianBlur(radius=1.2))
+        result_np[:, :, 3] = np.array(blurred_alpha)
 
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
