@@ -8,6 +8,8 @@ from rembg import remove
 
 st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
 st.title("Rediger baggrund til hvid på produktbilleder")
+st.image("logo.png", width=120)
+st.markdown("### Fjern nemt baggrunden fra produktbilleder med ét klik.")
 
 uploaded_files = st.file_uploader("Upload produktbilleder med grå baggrund", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
