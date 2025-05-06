@@ -4,7 +4,6 @@ import numpy as np
 import os
 import zipfile
 import io
-import cv2
 from rembg import remove
 
 st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
