@@ -25,34 +25,35 @@ uploaded_files = st.file_uploader("Upload produktbilleder med grå baggrund", ty
 if uploaded_files:
     processed_images = []
 
-    for uploaded_file in uploaded_files:
-        image = Image.open(uploaded_file).convert("RGBA")
-        image_np = np.array(image)
+    with st.spinner("Fjerner baggrund og genererer billeder..."):
+        for uploaded_file in uploaded_files:
+            image = Image.open(uploaded_file).convert("RGBA")
+            image_np = np.array(image)
 
-        # Fjern baggrund
-        removed_bg = remove(image_np)
+            # Fjern baggrund
+            removed_bg = remove(image_np)
 
-        # Lav ny hvid baggrund
-        white_bg = Image.new("RGBA", image.size, (255, 255, 255, 255))
-        final_image = Image.alpha_composite(white_bg, Image.fromarray(removed_bg))
+            # Lav ny hvid baggrund
+            white_bg = Image.new("RGBA", image.size, (255, 255, 255, 255))
+            final_image = Image.alpha_composite(white_bg, Image.fromarray(removed_bg))
 
-        # Konverter til RGB for lagring som JPG
-        rgb_image = final_image.convert("RGB")
+            # Konverter til RGB for lagring som JPG
+            rgb_image = final_image.convert("RGB")
 
-        # Gem til hukommelse
-        img_byte_arr = io.BytesIO()
-        rgb_image.save(img_byte_arr, format='JPEG')
-        img_byte_arr.seek(0)
+            # Gem til hukommelse
+            img_byte_arr = io.BytesIO()
+            rgb_image.save(img_byte_arr, format='JPEG')
+            img_byte_arr.seek(0)
 
-        processed_images.append((uploaded_file.name, img_byte_arr))
+            processed_images.append((uploaded_file.name, img_byte_arr))
 
-    # Lav en zip-fil
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        for filename, data in processed_images:
-            zip_file.writestr(filename, data.read())
+        # Lav en zip-fil
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+            for filename, data in processed_images:
+                zip_file.writestr(filename, data.read())
 
-    zip_buffer.seek(0)
+        zip_buffer.seek(0)
 
     st.success("Baggrunden er ændret til hvid!")
     st.download_button(
