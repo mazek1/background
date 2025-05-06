@@ -6,7 +6,7 @@ import zipfile
 import io
 
 st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
-st.image("logo.png", width=120)
+# st.image("logo.png", width=120)  # Midlertidigt deaktiveret for at undgå fejl
 st.markdown("### Fjern nemt baggrunden fra produktbilleder med ét klik.")
 
 st.title("Rediger baggrund til hvid på produktbilleder")
