@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageFilter
 import numpy as np
 import os
 import zipfile
@@ -33,6 +33,9 @@ if uploaded_files:
         # Læg oven på en hvid baggrund i fuld størrelse
         white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
         final_image = Image.alpha_composite(white_bg, result_image_cleaned)
+
+        # Skarphed
+        final_image = final_image.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=3))
 
         # Konverter til RGB for lagring som JPG
         rgb_image = final_image.convert("RGB")
