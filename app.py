@@ -4,13 +4,19 @@ import numpy as np
 import os
 import zipfile
 import io
-from rembg import remove
 
 st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
 st.image("logo.png", width=120)
 st.markdown("### Fjern nemt baggrunden fra produktbilleder med ét klik.")
 
 st.title("Rediger baggrund til hvid på produktbilleder")
+st.write("App starter...")
+
+try:
+    from rembg import remove
+    st.success("rembg blev importeret korrekt ✅")
+except Exception as e:
+    st.error(f"Fejl ved import af rembg: {e}")
 
 uploaded_files = st.file_uploader("Upload produktbilleder med grå baggrund", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
