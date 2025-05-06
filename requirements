@@ -2,6 +2,4 @@ streamlit
 Pillow
 numpy
 rembg==2.0.50
-
-# Følgende linje sikrer korrekt backend til rembg i Streamlit Cloud
 onnxruntime==1.15.1
