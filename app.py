@@ -32,9 +32,18 @@ if uploaded_files:
         # Konverter tilbage til billede
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
+        # ➡️ Adaptive Feathering (blødere kantovergange)
+        feathered = result_image_cleaned.filter(ImageFilter.GaussianBlur(radius=0.5))
+
+        # ➡️ Edge Refinement (forbedring af kanter)
+        enhanced_edges = feathered.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=1))
+
+        # ➡️ Foreground Boosting
+        enhanced_edges = enhanced_edges.filter(ImageFilter.SMOOTH_MORE)
+
         # Læg oven på en HELT HVID baggrund
-        white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
-        final_image = Image.alpha_composite(white_bg, result_image_cleaned)
+        white_bg = Image.new("RGBA", enhanced_edges.size, (255, 255, 255, 255))
+        final_image = Image.alpha_composite(white_bg, enhanced_edges)
 
         # Skarphed
         final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.2, percent=130, threshold=2))
