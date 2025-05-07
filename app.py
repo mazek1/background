@@ -34,11 +34,14 @@ if uploaded_files:
             # Konverter tilbage til billede
             result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
-            # ➡️ Kantforbedring uden at påvirke produktet
+            # ➡️ Forbedret kantdetektion
             alpha = result_image_cleaned.split()[-1]
             # Mindre blur og ekstra skarphed for mere præcis kant
-            smooth_alpha = alpha.filter(ImageFilter.GaussianBlur(radius=0.3))
-            edge_enhanced = ImageOps.autocontrast(smooth_alpha)
+            refined_alpha = alpha.filter(ImageFilter.GaussianBlur(radius=0.2))
+            edge_enhanced = ImageOps.autocontrast(refined_alpha)
+
+            # ➡️ Subpixel Masking for skarpere overgange
+            edge_enhanced = edge_enhanced.point(lambda p: p if p > 50 else 0)
 
             # ➡️ Sammensætning på en hvid baggrund
             white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
@@ -46,7 +49,7 @@ if uploaded_files:
             final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
             # Skarphed og blødgøring
-            final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.5, percent=150, threshold=1))
+            final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.8, percent=160, threshold=1))
 
             # Konverter til RGB for lagring som JPG
             rgb_image = final_image.convert("RGB")
