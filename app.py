@@ -32,28 +32,19 @@ if uploaded_files:
         # Konverter tilbage til billede
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
-        # ➡️ Subpixel Feathering (finkornet udglatning)
-        feathered = result_image_cleaned.filter(ImageFilter.GaussianBlur(radius=0.8))
+        # ➡️ Præcis kantdetektion (kun de yderste pixels justeres)
+        alpha_channel = result_image_cleaned.split()[-1]
+        edge_mask = alpha_channel.point(lambda p: 255 if p > 0 and p < 255 else 0)
 
-        # ➡️ Skånsom Color Decontamination — Kun på de yderste kanter
-        decontaminated_np = np.array(feathered)
-        alpha_channel = decontaminated_np[:, :, 3]
-        edge_mask = (alpha_channel > 0) & (alpha_channel < 255)
+        # ➡️ Blød overgang på kanten
+        edge_mask = edge_mask.filter(ImageFilter.GaussianBlur(radius=1))
 
-        # Kun ændring på kanten, ikke hele produktet
-        for c in range(3):
-            channel = decontaminated_np[:, :, c]
-            channel[edge_mask & (channel < 240)] = 255
-
-        # ➡️ Sammensætning til nyt billede
-        feathered = Image.fromarray(decontaminated_np, mode="RGBA")
-
-        # Læg oven på en HELT HVID baggrund
-        white_bg = Image.new("RGBA", feathered.size, (255, 255, 255, 255))
-        final_image = Image.alpha_composite(white_bg, feathered)
+        # ➡️ Sammensætning på en helt hvid baggrund
+        white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
+        white_bg.paste(result_image_cleaned, (0, 0), mask=edge_mask)
 
         # Skarphed
-        final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.2, percent=130, threshold=2))
+        final_image = white_bg.filter(ImageFilter.UnsharpMask(radius=1.2, percent=130, threshold=2))
 
         # Konverter til RGB for lagring som JPG
         rgb_image = final_image.convert("RGB")
