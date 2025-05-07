@@ -32,6 +32,17 @@ if uploaded_files:
         # Konverter tilbage til billede
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
+        # ➡️ Kantudglatning (Feathering)
+        feathered = result_image_cleaned.filter(ImageFilter.GaussianBlur(radius=0.8))
+
+        # ➡️ Farvekorrektion af kanter (eliminer grå skær)
+        feathered_np = np.array(feathered)
+        alpha_channel = feathered_np[:, :, 3]
+        feathered_np[:, :, :3][alpha_channel < 255] = [255, 255, 255]
+
+        # Konverter tilbage til billede
+        result_image_cleaned = Image.fromarray(feathered_np, mode="RGBA")
+
         # Læg oven på en HELT HVID baggrund
         white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
         final_image = Image.alpha_composite(white_bg, result_image_cleaned)
