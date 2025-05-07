@@ -39,12 +39,12 @@ if uploaded_files:
         # Konverter tilbage til billede
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
-        # Læg oven på en HELT HVID baggrund, ikke sort
+        # Læg oven på en HELT HVID baggrund og undgå sort
         white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
-        white_bg.paste(result_image_cleaned, (0, 0), result_image_cleaned)
+        final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
         # Skarphed
-        final_image = white_bg.filter(ImageFilter.UnsharpMask(radius=1.2, percent=130, threshold=2))
+        final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.2, percent=130, threshold=2))
 
         # Konverter til RGB for lagring som JPG
         rgb_image = final_image.convert("RGB")
