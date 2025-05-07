@@ -32,15 +32,20 @@ if uploaded_files:
         # Konverter tilbage til billede
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
-        # ➡️ Adaptive Feathering (blødere kantovergange)
-        feathered = result_image_cleaned.filter(ImageFilter.GaussianBlur(radius=0.5))
+        # ➡️ Subpixel Feathering (finkornet udglatning)
+        feathered = result_image_cleaned.filter(ImageFilter.GaussianBlur(radius=0.8))
 
-        # ➡️ Erosion på alfakanalen for at trække kanten ind
-        alpha = feathered.split()[-1]
-        alpha = alpha.filter(ImageFilter.MinFilter(3))  # Mindre radius for at holde detaljerne
+        # ➡️ Color Decontamination — Fjerner grå kanter
+        decontaminated_np = np.array(feathered)
+        mask = decontaminated_np[:, :, 3] > 0
 
-        # ➡️ Sammensætning af alfakanalen igen
-        feathered.putalpha(alpha)
+        # Fjerner rester af grå i kanten
+        for c in range(3):
+            channel = decontaminated_np[:, :, c]
+            channel[mask & (channel < 240)] = 255
+
+        # ➡️ Sammensætning til nyt billede
+        feathered = Image.fromarray(decontaminated_np, mode="RGBA")
 
         # Læg oven på en HELT HVID baggrund
         white_bg = Image.new("RGBA", feathered.size, (255, 255, 255, 255))
