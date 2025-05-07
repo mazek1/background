@@ -5,7 +5,6 @@ import os
 import zipfile
 import io
 from rembg import remove
-from scipy.ndimage import sobel
 
 st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
 st.title("Rediger baggrund til hvid på produktbilleder")
@@ -33,23 +32,17 @@ if uploaded_files:
         # Konverter tilbage til billede
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
-        # ➡️ Skarpere kantdetektion med Sobel Edge Detection
-        alpha_channel = result_np[:, :, 3]
-        edge_x = sobel(alpha_channel, axis=0)
-        edge_y = sobel(alpha_channel, axis=1)
-        edges = np.hypot(edge_x, edge_y)
-        edges = np.clip(edges, 0, 255)
-        edge_mask = Image.fromarray(edges.astype(np.uint8))
+        # ➡️ Forbedret kantdetektion og udglatning
+        alpha = result_image_cleaned.split()[-1]
+        smooth_alpha = alpha.filter(ImageFilter.GaussianBlur(radius=0.8))
 
-        # ➡️ Anti-aliasing for blødere overgange
-        edge_mask = edge_mask.filter(ImageFilter.SMOOTH)
-
-        # ➡️ Sammensætning på en helt hvid baggrund
+        # ➡️ Blending på en hvid baggrund med den forbedrede kant
         white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
-        white_bg.paste(result_image_cleaned, (0, 0), mask=edge_mask)
+        result_image_cleaned.putalpha(smooth_alpha)
+        final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
         # Skarphed og blødgøring
-        final_image = white_bg.filter(ImageFilter.UnsharpMask(radius=1.5, percent=150, threshold=2))
+        final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.2, percent=130, threshold=2))
 
         # Konverter til RGB for lagring som JPG
         rgb_image = final_image.convert("RGB")
