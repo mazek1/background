@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 import numpy as np
 import os
 import zipfile
@@ -22,23 +22,29 @@ if uploaded_files:
         removed_bg = remove(image_np)
         result_image = Image.fromarray(removed_bg)
 
-        # Premultiplied Alpha Blending for naturlige overgange
-        result_np = np.array(result_image).astype(np.uint8)
-        alpha = result_np[:, :, 3]
+        # Kantdetektion (Edge Detection)
+        edges = result_image.filter(ImageFilter.FIND_EDGES)
 
-        # Glatning af kanten (Anti-aliasing)
-        blurred_alpha = Image.fromarray(alpha).filter(ImageFilter.GaussianBlur(radius=1))
-        result_np[:, :, 3] = np.array(blurred_alpha)
+        # Forstærk kanten og fjern artefakter
+        edges = ImageOps.invert(edges.convert("L"))
+        edges = edges.point(lambda x: 0 if x < 240 else 255)
+
+        # Lav en maske, der skaber en blød overgang ved kanterne
+        smooth_mask = edges.filter(ImageFilter.GaussianBlur(radius=1.5))
+
+        # Tilføj masken til alfakanalen
+        result_np = np.array(result_image)
+        result_np[:, :, 3] = np.array(smooth_mask)
 
         # Konverter tilbage til billede
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
-        # Læg oven på en hvid baggrund med premultiplied alpha
+        # Læg oven på en hvid baggrund med præcis blending
         white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
         final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
         # Skarphed
-        final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.5, percent=130, threshold=2))
+        final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.2, percent=130, threshold=2))
 
         # Konverter til RGB for lagring som JPG
         rgb_image = final_image.convert("RGB")
