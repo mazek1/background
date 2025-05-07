@@ -32,27 +32,12 @@ if uploaded_files:
         # Konverter tilbage til billede
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
-        # ➡️ Forbedret kantdetektion og feathering
-        alpha_channel = result_image_cleaned.split()[-1]
-        edge_mask = alpha_channel.filter(ImageFilter.FIND_EDGES)
-        edge_mask = edge_mask.filter(ImageFilter.SMOOTH_MORE)
-
-        # ➡️ Blød overgang på kanten
-        edge_mask = edge_mask.filter(ImageFilter.GaussianBlur(radius=1.5))
-
-        # ➡️ Justering af farver langs kanten
-        edge_mask_np = np.array(edge_mask)
-        threshold = 60
-        edge_mask_np[edge_mask_np < threshold] = 0
-        edge_mask_np[edge_mask_np >= threshold] = 255
-        edge_mask = Image.fromarray(edge_mask_np)
-
-        # ➡️ Sammensætning på en helt hvid baggrund
+        # ➡️ Korrekt blending med hvid baggrund
         white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
-        white_bg.paste(result_image_cleaned, (0, 0), mask=edge_mask)
+        final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
-        # Skarphed
-        final_image = white_bg.filter(ImageFilter.UnsharpMask(radius=1.2, percent=130, threshold=2))
+        # Skarphed og blødgøring
+        final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.2, percent=130, threshold=2))
 
         # Konverter til RGB for lagring som JPG
         rgb_image = final_image.convert("RGB")
