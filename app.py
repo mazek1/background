@@ -22,24 +22,17 @@ if uploaded_files:
         removed_bg = remove(image_np)
         result_image = Image.fromarray(removed_bg)
 
-        # Kantdetektion (Edge Detection)
-        edges = result_image.filter(ImageFilter.FIND_EDGES)
-
-        # Forstærk kanten og fjern artefakter
-        edges = ImageOps.invert(edges.convert("L"))
-        edges = edges.point(lambda x: 0 if x < 240 else 255)
-
-        # Lav en maske, der skaber en blød overgang ved kanterne
-        smooth_mask = edges.filter(ImageFilter.GaussianBlur(radius=1.5))
-
-        # Tilføj masken til alfakanalen
+        # 🔍 Tjek for sort baggrund og erstat med hvid
         result_np = np.array(result_image)
-        result_np[:, :, 3] = np.array(smooth_mask)
+
+        # Find sorte pixels (0, 0, 0, x) og gør dem hvide (255, 255, 255, x)
+        black_pixels = (result_np[:, :, 0] == 0) & (result_np[:, :, 1] == 0) & (result_np[:, :, 2] == 0)
+        result_np[black_pixels] = [255, 255, 255, 0]
 
         # Konverter tilbage til billede
         result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
 
-        # Læg oven på en HELT HVID baggrund og undgå sort
+        # Læg oven på en HELT HVID baggrund
         white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
         final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
