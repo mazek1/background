@@ -35,14 +35,15 @@ if uploaded_files:
         # ➡️ Subpixel Feathering (finkornet udglatning)
         feathered = result_image_cleaned.filter(ImageFilter.GaussianBlur(radius=0.8))
 
-        # ➡️ Color Decontamination — Fjerner grå kanter
+        # ➡️ Skånsom Color Decontamination — Kun på de yderste kanter
         decontaminated_np = np.array(feathered)
-        mask = decontaminated_np[:, :, 3] > 0
+        alpha_channel = decontaminated_np[:, :, 3]
+        edge_mask = (alpha_channel > 0) & (alpha_channel < 255)
 
-        # Fjerner rester af grå i kanten
+        # Kun ændring på kanten, ikke hele produktet
         for c in range(3):
             channel = decontaminated_np[:, :, c]
-            channel[mask & (channel < 240)] = 255
+            channel[edge_mask & (channel < 240)] = 255
 
         # ➡️ Sammensætning til nyt billede
         feathered = Image.fromarray(decontaminated_np, mode="RGBA")
