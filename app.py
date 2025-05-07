@@ -37,11 +37,12 @@ if uploaded_files:
             # ➡️ Forbedret kantdetektion
             alpha = result_image_cleaned.split()[-1]
 
-            # Erosion på alfakanalen for at trække kanten lidt indad
+            # Double Pass Erosion for skarpere kanter
             refined_alpha = alpha.filter(ImageFilter.MinFilter(3))
+            refined_alpha = refined_alpha.filter(ImageFilter.MinFilter(3))
 
             # Feathering for en glattere overgang
-            refined_alpha = refined_alpha.filter(ImageFilter.GaussianBlur(radius=0.8))
+            refined_alpha = refined_alpha.filter(ImageFilter.GaussianBlur(radius=0.5))
 
             # Adaptive threshold for at fjerne grå slør
             refined_alpha = ImageOps.autocontrast(refined_alpha)
@@ -52,7 +53,7 @@ if uploaded_files:
             final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
             # Skarphed og blødgøring
-            final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.5, percent=150, threshold=1))
+            final_image = final_image.filter(ImageFilter.UnsharpMask(radius=2.0, percent=160, threshold=1))
 
             # Konverter til RGB for lagring som JPG
             rgb_image = final_image.convert("RGB")
