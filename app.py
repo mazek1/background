@@ -35,15 +35,16 @@ if uploaded_files:
         # ➡️ Adaptive Feathering (blødere kantovergange)
         feathered = result_image_cleaned.filter(ImageFilter.GaussianBlur(radius=0.5))
 
-        # ➡️ Edge Refinement (forbedring af kanter)
-        enhanced_edges = feathered.filter(ImageFilter.UnsharpMask(radius=2, percent=150, threshold=1))
+        # ➡️ Erosion på alfakanalen for at trække kanten ind
+        alpha = feathered.split()[-1]
+        alpha = alpha.filter(ImageFilter.MinFilter(3))  # Mindre radius for at holde detaljerne
 
-        # ➡️ Foreground Boosting
-        enhanced_edges = enhanced_edges.filter(ImageFilter.SMOOTH_MORE)
+        # ➡️ Sammensætning af alfakanalen igen
+        feathered.putalpha(alpha)
 
         # Læg oven på en HELT HVID baggrund
-        white_bg = Image.new("RGBA", enhanced_edges.size, (255, 255, 255, 255))
-        final_image = Image.alpha_composite(white_bg, enhanced_edges)
+        white_bg = Image.new("RGBA", feathered.size, (255, 255, 255, 255))
+        final_image = Image.alpha_composite(white_bg, feathered)
 
         # Skarphed
         final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.2, percent=130, threshold=2))
