@@ -42,14 +42,17 @@ if uploaded_files:
             refined_alpha = refined_alpha.filter(ImageFilter.MinFilter(3))
             refined_alpha = refined_alpha.filter(ImageFilter.MinFilter(3))
 
-            # Advanced Feathering for en glattere overgang
-            refined_alpha = refined_alpha.filter(ImageFilter.GaussianBlur(radius=0.5))
+            # Anti-Halo Masking (fjerner grå slør)
+            alpha_np = np.array(refined_alpha)
+            edge_mask = (alpha_np > 10) & (alpha_np < 245)
+            alpha_np[edge_mask] = 255
+            refined_alpha = Image.fromarray(alpha_np)
+
+            # ➡️ Reduceret Feathering for skarpere kant
+            refined_alpha = refined_alpha.filter(ImageFilter.GaussianBlur(radius=0.2))
 
             # Adaptive threshold for at fjerne grå slør
             refined_alpha = ImageOps.autocontrast(refined_alpha)
-
-            # ➡️ Soft Edge Blending for naturlig overgang
-            refined_alpha = refined_alpha.filter(ImageFilter.SMOOTH_MORE)
 
             # ➡️ Sammensætning på en hvid baggrund
             white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
