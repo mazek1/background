@@ -5,9 +5,28 @@ import os
 import zipfile
 import io
 from rembg import remove
+import torch
+from torchvision import transforms
+from torchvision.models.segmentation import deeplabv3_resnet101
+from modnet import MODNet
 
 st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
 st.title("Rediger baggrund til hvid på produktbilleder")
+
+# Indlæs DeepLabV3
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+deep_model = deeplabv3_resnet101(pretrained=True).to(device)
+deep_model.eval()
+
+# Indlæs MODNet
+modnet = MODNet(backbone='resnet50')
+modnet = modnet.to(device)
+modnet.eval()
+
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
 
 uploaded_files = st.file_uploader("Upload produktbilleder med grå baggrund", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
@@ -17,40 +36,30 @@ if uploaded_files:
     # Spinner mens billedet behandles
     with st.spinner('Behandler billeder, vent venligst...'):
         for uploaded_file in uploaded_files:
-            image = Image.open(uploaded_file).convert("RGBA")
-            image_np = np.array(image)
+            image = Image.open(uploaded_file).convert("RGB")
+            original_size = image.size
 
-            # Fjern baggrund
-            removed_bg = remove(image_np)
-            result_image = Image.fromarray(removed_bg)
+            # ➡️ Først kør igennem MODNet
+            modnet_input = image.resize((512, 512))
+            modnet_input = transform(modnet_input).unsqueeze(0).to(device)
+            _, _, matte = modnet(modnet_input, True)
 
-            # 🔍 Tjek for sort baggrund og erstat med hvid
-            result_np = np.array(result_image)
+            matte = matte.squeeze().cpu().detach().numpy()
+            matte = Image.fromarray((matte * 255).astype(np.uint8)).resize(original_size)
 
-            # Find sorte pixels (0, 0, 0, x) og gør dem hvide (255, 255, 255, x)
-            black_pixels = (result_np[:, :, 0] == 0) & (result_np[:, :, 1] == 0) & (result_np[:, :, 2] == 0)
-            result_np[black_pixels] = [255, 255, 255, 0]
+            # ➡️ Derefter DeepLabV3 for forfinelse
+            deep_input = transform(image).unsqueeze(0).to(device)
+            output = deep_model(deep_input)['out'][0]
+            mask = output.argmax(0).byte().cpu().numpy()
 
-            # Konverter tilbage til billede
-            result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
+            # ➡️ Lav en alfakanal baseret på MODNet og DeepLab
+            combined_mask = Image.fromarray(np.where(mask == 15, matte, 0).astype(np.uint8))
 
-            # ➡️ Forbedret kantdetektion
-            alpha = result_image_cleaned.split()[-1]
-
-            # Double Pass Erosion for skarpere kanter
-            refined_alpha = alpha.filter(ImageFilter.MinFilter(3))
-            refined_alpha = refined_alpha.filter(ImageFilter.MinFilter(3))
-
-            # Feathering for en glattere overgang
-            refined_alpha = refined_alpha.filter(ImageFilter.GaussianBlur(radius=0.5))
-
-            # Adaptive threshold for at fjerne grå slør
-            refined_alpha = ImageOps.autocontrast(refined_alpha)
-
-            # ➡️ Sammensætning på en hvid baggrund
-            white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
-            result_image_cleaned.putalpha(refined_alpha)
-            final_image = Image.alpha_composite(white_bg, result_image_cleaned)
+            # ➡️ Sammensæt med hvid baggrund
+            image_rgba = image.convert("RGBA")
+            image_rgba.putalpha(combined_mask)
+            white_bg = Image.new("RGBA", image_rgba.size, (255, 255, 255, 255))
+            final_image = Image.alpha_composite(white_bg, image_rgba)
 
             # Skarphed og blødgøring
             final_image = final_image.filter(ImageFilter.UnsharpMask(radius=2.0, percent=160, threshold=1))
