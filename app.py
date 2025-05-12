@@ -48,13 +48,22 @@ if uploaded_files:
             # Adaptive threshold for at fjerne grå slør
             refined_alpha = ImageOps.autocontrast(refined_alpha)
 
+            # ➡️ Subpixel Masking
+            refined_alpha = refined_alpha.filter(ImageFilter.UnsharpMask(radius=0.5, percent=200, threshold=1))
+
+            # ➡️ Color Decontamination langs kanter
+            alpha_np = np.array(refined_alpha)
+            edge_mask = (alpha_np > 10) & (alpha_np < 255)
+            alpha_np[edge_mask] = 255
+            refined_alpha = Image.fromarray(alpha_np)
+
             # ➡️ Sammensætning på en hvid baggrund
             white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
             result_image_cleaned.putalpha(refined_alpha)
             final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
-            # High-Pass Sharpening for ekstra skarphed
-            final_image = final_image.filter(ImageFilter.UnsharpMask(radius=2.5, percent=180, threshold=1))
+            # Selective Edge Sharpening for ekstra præcision
+            final_image = final_image.filter(ImageFilter.UnsharpMask(radius=2.5, percent=200, threshold=1))
 
             # Konverter til RGB for lagring som JPG
             rgb_image = final_image.convert("RGB")
