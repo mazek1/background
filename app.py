@@ -43,19 +43,13 @@ if uploaded_files:
             refined_alpha = refined_alpha.filter(ImageFilter.MinFilter(3))
 
             # Advanced Feathering for en glattere overgang
-            refined_alpha = refined_alpha.filter(ImageFilter.GaussianBlur(radius=0.3))
+            refined_alpha = refined_alpha.filter(ImageFilter.GaussianBlur(radius=0.5))
 
             # Adaptive threshold for at fjerne grå slør
             refined_alpha = ImageOps.autocontrast(refined_alpha)
 
-            # ➡️ Subpixel Masking
-            refined_alpha = refined_alpha.filter(ImageFilter.UnsharpMask(radius=0.5, percent=200, threshold=1))
-
-            # ➡️ Color Decontamination langs kanter
-            alpha_np = np.array(refined_alpha)
-            edge_mask = (alpha_np > 10) & (alpha_np < 255)
-            alpha_np[edge_mask] = 255
-            refined_alpha = Image.fromarray(alpha_np)
+            # ➡️ Soft Edge Blending for naturlig overgang
+            refined_alpha = refined_alpha.filter(ImageFilter.SMOOTH_MORE)
 
             # ➡️ Sammensætning på en hvid baggrund
             white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
@@ -63,7 +57,7 @@ if uploaded_files:
             final_image = Image.alpha_composite(white_bg, result_image_cleaned)
 
             # Selective Edge Sharpening for ekstra præcision
-            final_image = final_image.filter(ImageFilter.UnsharpMask(radius=2.5, percent=200, threshold=1))
+            final_image = final_image.filter(ImageFilter.UnsharpMask(radius=2.0, percent=150, threshold=1))
 
             # Konverter til RGB for lagring som JPG
             rgb_image = final_image.convert("RGB")
