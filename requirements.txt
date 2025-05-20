@@ -1,7 +1,6 @@
-streamlit==1.32.2
-Pillow==10.1.0
-numpy==1.24.4
-rembg==2.0.50
-onnxruntime==1.15.1
+streamlit
+Pillow
+numpy
+rembg
 torch
 torchvision
