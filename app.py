@@ -10,9 +10,9 @@ st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
 st.title("Rediger baggrund til hvid på produktbilleder")
 
 # Forvarm rembg ved at initialisere session og loade model
-temp_image = np.zeros((10, 10, 3), dtype=np.uint8)
+dummy_image = np.ones((100, 100, 3), dtype=np.uint8) * 255
 session = new_session()
-remove(temp_image, session=session)
+remove(dummy_image, session=session)
 
 uploaded_files = st.file_uploader("Upload produktbilleder med grå baggrund", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
