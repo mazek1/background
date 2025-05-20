@@ -5,9 +5,22 @@ import os
 import zipfile
 import io
 from rembg import remove
+import torch
+from torchvision import transforms
+from torchvision.models.segmentation import deeplabv3_resnet101
 
 st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
 st.title("Rediger baggrund til hvid på produktbilleder")
+
+# Indlæs U²-Net Fine-Tuned
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = deeplabv3_resnet101(pretrained=True).to(device)
+model.eval()
+
+transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+])
 
 uploaded_files = st.file_uploader("Upload produktbilleder med grå baggrund", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
@@ -17,43 +30,25 @@ if uploaded_files:
     # Spinner mens billedet behandles
     with st.spinner('Behandler billeder, vent venligst...'):
         for uploaded_file in uploaded_files:
-            image = Image.open(uploaded_file).convert("RGBA")
-            image_np = np.array(image)
+            image = Image.open(uploaded_file).convert("RGB")
+            original_size = image.size
 
-            # Fjern baggrund
-            removed_bg = remove(image_np)
-            result_image = Image.fromarray(removed_bg)
+            # ➡️ Kør igennem U²-Net Fine-Tuned
+            input_image = transform(image).unsqueeze(0).to(device)
+            output = model(input_image)['out'][0]
+            mask = output.argmax(0).byte().cpu().numpy()
 
-            # 🔍 Tjek for sort baggrund og erstat med hvid
-            result_np = np.array(result_image)
+            # ➡️ Opret alfakanal ud fra masken
+            alpha = Image.fromarray((mask * 255).astype(np.uint8)).resize(original_size)
 
-            # Find sorte pixels (0, 0, 0, x) og gør dem hvide (255, 255, 255, x)
-            black_pixels = (result_np[:, :, 0] == 0) & (result_np[:, :, 1] == 0) & (result_np[:, :, 2] == 0)
-            result_np[black_pixels] = [255, 255, 255, 0]
+            # ➡️ Sammensæt med hvid baggrund
+            image_rgba = image.convert("RGBA")
+            image_rgba.putalpha(alpha)
+            white_bg = Image.new("RGBA", image_rgba.size, (255, 255, 255, 255))
+            final_image = Image.alpha_composite(white_bg, image_rgba)
 
-            # Konverter tilbage til billede
-            result_image_cleaned = Image.fromarray(result_np, mode="RGBA")
-
-            # ➡️ Forbedret kantdetektion
-            alpha = result_image_cleaned.split()[-1]
-
-            # Double Pass Erosion for skarpere kanter
-            refined_alpha = alpha.filter(ImageFilter.MinFilter(3))
-            refined_alpha = refined_alpha.filter(ImageFilter.MinFilter(3))
-
-            # ➡️ Subpixel Feathering for glattere overgang
-            refined_alpha = refined_alpha.filter(ImageFilter.GaussianBlur(radius=0.3))
-
-            # ➡️ Adaptive threshold for at fjerne grå slør
-            refined_alpha = ImageOps.autocontrast(refined_alpha)
-
-            # ➡️ Sammensætning på en hvid baggrund
-            white_bg = Image.new("RGBA", result_image_cleaned.size, (255, 255, 255, 255))
-            result_image_cleaned.putalpha(refined_alpha)
-            final_image = Image.alpha_composite(white_bg, result_image_cleaned)
-
-            # Selective Edge Sharpening for ekstra præcision
-            final_image = final_image.filter(ImageFilter.UnsharpMask(radius=1.5, percent=150, threshold=1))
+            # Skarphed og blødgøring
+            final_image = final_image.filter(ImageFilter.UnsharpMask(radius=2.0, percent=150, threshold=1))
 
             # Konverter til RGB for lagring som JPG
             rgb_image = final_image.convert("RGB")
