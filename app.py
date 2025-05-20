@@ -4,10 +4,15 @@ import numpy as np
 import os
 import zipfile
 import io
-from rembg import remove
+from rembg import remove, new_session
 
 st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
 st.title("Rediger baggrund til hvid på produktbilleder")
+
+# Forvarm rembg ved at initialisere session og loade model
+temp_image = np.zeros((10, 10, 3), dtype=np.uint8)
+session = new_session()
+remove(temp_image, session=session)
 
 uploaded_files = st.file_uploader("Upload produktbilleder med grå baggrund", type=["jpg", "jpeg", "png"], accept_multiple_files=True)
 
@@ -21,7 +26,7 @@ if uploaded_files:
             image_np = np.array(image)
 
             # Fjern baggrund med rembg (U^2-Net Fine-Tuned)
-            removed_bg = remove(image_np)
+            removed_bg = remove(image_np, session=session)
             result_image = Image.fromarray(removed_bg)
 
             # 🔍 Tjek for sort baggrund og erstat med hvid
