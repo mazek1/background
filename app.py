@@ -26,7 +26,11 @@ if uploaded_files:
             image_np = np.array(image)
 
             # Fjern baggrund med rembg (U^2-Net Fine-Tuned)
-            removed_bg = remove(image, session=session)
+            img_byte_arr = io.BytesIO()
+            image.save(img_byte_arr, format='PNG')
+            img_bytes = img_byte_arr.getvalue()
+            output_bytes = remove(img_bytes, session=session)
+            removed_bg = Image.open(io.BytesIO(output_bytes)).convert("RGBA")
             result_image = removed_bg
 
             # 🔍 Tjek for sort baggrund og erstat med hvid
