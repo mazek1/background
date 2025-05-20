@@ -10,7 +10,7 @@ st.set_page_config(page_title="Hvid Baggrundsredigering", layout="centered")
 st.title("Rediger baggrund til hvid på produktbilleder")
 
 # Forvarm rembg ved at initialisere session og loade model
-dummy_image = np.ones((100, 100, 3), dtype=np.uint8) * 255
+dummy_image = Image.new("RGB", (100, 100), (255, 255, 255))
 session = new_session()
 remove(dummy_image, session=session)
 
